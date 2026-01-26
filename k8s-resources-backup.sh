@@ -17,10 +17,12 @@
 
 set -eo pipefail
 
-if ! command -v kubectl >/dev/null 2>&1; then
-  echo "kubectl не найден в PATH" >&2
-  exit 1
-fi
+for cmd in "jq" "kubectl"; do
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+        echo "${cmd} is not found in ${PATH}. Exiting..." >&2
+        exit 1
+    fi
+done
 
 BACKUP_ROOT="${1:-k8s-resources-backup-$(date +%Y%m%d-%H%M%S)}"
 BACKUP_ROOT="$(realpath "${BACKUP_ROOT}")"
@@ -34,7 +36,7 @@ echo "${separator}"
 echo " Backup directory: ${BACKUP_ROOT}"
 
 echo " Collecting clusterwide resources kinds..."
-cluster_resources="$(kubectl api-resources --verbs=list --namespaced=false -o name | grep -v "/" | sort -u)"
+cluster_resources="$(kubectl api-resources --verbs=list --namespaced=false -o name)"
 echo "${separator}"
 
 echo
@@ -66,10 +68,10 @@ separator="---------------------------------------------------------------------
 echo
 echo "${separator}"
 echo " Collecting namespaces list..."
-namespaces="$(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+namespaces="$(kubectl get ns -o json | jq -r '.items[].metadata.name')"
 
 echo " Collecting namespaced resource kinds..."
-ns_resources="$(kubectl api-resources --verbs=list --namespaced=true -o name | grep -v "/" | sort -u)"
+ns_resources="$(kubectl api-resources --verbs=list --namespaced=true -o name)"
 echo "${separator}"
 
 for ns in ${namespaces}; do
