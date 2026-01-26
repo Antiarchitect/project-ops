@@ -6,14 +6,14 @@
 #     clusterwide/
 #       <resourceType>/
 #         <objectName>.yaml
-#     namespaces/
+#     namespaced/
 #       <namespace>/
 #         <resourceType>/
 #           <objectName>.yaml
 #
 # Usage:
 #   ./k8s-backup.sh [BACKUP_DIR]
-# If BACKUP_DIR is not set k8s-backup-<date-time> will be used
+# If BACKUP_DIR is not set k8s-resources-backup-<date-time> will be used
 
 set -eo pipefail
 
@@ -22,9 +22,10 @@ if ! command -v kubectl >/dev/null 2>&1; then
   exit 1
 fi
 
-BACKUP_ROOT="${1:-k8s-backup-$(date +%Y%m%d-%H%M%S)}"
+BACKUP_ROOT="${1:-k8s-resources-backup-$(date +%Y%m%d-%H%M%S)}"
+BACKUP_ROOT="$(realpath "${BACKUP_ROOT}")"
 
-mkdir -p "${BACKUP_ROOT}/clusterwide" "${BACKUP_ROOT}/namespaces"
+mkdir -p "${BACKUP_ROOT}/clusterwide" "${BACKUP_ROOT}/namespaced"
 
 table_pattern="| %-70s | %-7s |\n"
 separator="------------------------------------------------------------------------------------"
@@ -65,7 +66,7 @@ separator="---------------------------------------------------------------------
 echo
 echo "${separator}"
 echo " Collecting namespaces list..."
-namespaces="$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+namespaces="$(kubectl get ns -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
 
 echo " Collecting namespaced resource kinds..."
 ns_resources="$(kubectl api-resources --verbs=list --namespaced=true -o name | grep -v "/" | sort -u)"
@@ -77,7 +78,7 @@ for ns in ${namespaces}; do
     echo " Resources backup for namespace: ${ns}"
     echo "${separator}"
     echo
-    ns_dir="${BACKUP_ROOT}/namespaces/${ns}"
+    ns_dir="${BACKUP_ROOT}/namespaced/${ns}"
     mkdir -p "${ns_dir}"
 
     printf "${table_pattern}" "Namespace" "Resource" "Objects"
