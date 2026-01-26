@@ -34,7 +34,7 @@ echo "${separator}"
 echo " Backup directory: ${BACKUP_ROOT}"
 
 echo " Collecting clusterwide resources kinds..."
-cluster_resources="$(kubectl api-resources --verbs=list --namespaced=false -o name)"
+cluster_resources="$(kubectl api-resources --verbs=list --namespaced=false -o name | sort -u)"
 echo "${separator}"
 
 echo
@@ -58,7 +58,7 @@ for res in ${cluster_resources}; do
         obj_count=$(( obj_count + 1 ))
     done
 
-    printf "${table_pattern}" "${res}" "${obj_count}"
+    test "${obj_count}" -gt "0" && printf "${table_pattern}" "${res}" "${obj_count}"
 done
 
 table_pattern="| %-25s | %-70s | %-7s |\n"
@@ -69,7 +69,7 @@ echo " Collecting namespaces list..."
 namespaces="$(kubectl get ns -o jsonpath='{.items[*].metadata.name}')"
 
 echo " Collecting namespaced resource kinds..."
-ns_resources="$(kubectl api-resources --verbs=list --namespaced=true -o name)"
+ns_resources="$(kubectl api-resources --verbs=list --namespaced=true -o name | sort -u)"
 echo "${separator}"
 
 for ns in ${namespaces}; do
@@ -97,7 +97,7 @@ for ns in ${namespaces}; do
             obj_count=$(( obj_count + 1 ))
         done
 
-        printf "${table_pattern}" "${ns}" "${res}" "${obj_count}"
+        test "${obj_count}" -gt "0" && printf "${table_pattern}" "${ns}" "${res}" "${obj_count}"
     done
 done
 
